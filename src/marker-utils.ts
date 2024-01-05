@@ -58,14 +58,14 @@ export class MarkerUtils {
           return marker.position;
         }
         // since we can't cast to LatLngLiteral for reasons =(
-        if (marker.position.lat && marker.position.lng) {
+        if (!isNaN(marker.position.lat) && !isNaN(marker.position.lng)) {
           return new google.maps.LatLng(
             marker.position.lat,
             marker.position.lng
           );
         }
       }
-      return new google.maps.LatLng(null);
+      return new google.maps.LatLng(null, null);
     }
     return marker.getPosition();
   }

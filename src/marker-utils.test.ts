@@ -15,7 +15,7 @@
  */
 
 import { MarkerUtils } from "./marker-utils";
-import { initialize } from "@googlemaps/jest-mocks";
+import { initialize, LatLng } from "@googlemaps/jest-mocks";
 
 initialize();
 const markerClasses = [
@@ -54,16 +54,37 @@ describe.each(markerClasses)(
     });
 
     test("gets the marker position and returns a LatLng", () => {
+      const createLatLngSpy = jest.fn();
+      google.maps.LatLng = class extends google.maps.LatLng {
+        private mockLat: number;
+        private mockLng: number;
+        constructor(...args: ConstructorParameters<typeof google.maps.LatLng>) {
+          super(...args);
+          createLatLngSpy(...args);
+          this.mockLat = args[0] !== undefined ? +args[0] : NaN;
+          this.mockLng = args[1] !== undefined ? +args[1] : NaN;
+        }
+        public lat = () => this.mockLat;
+        public lng = () => this.mockLng;
+      };
+
       // test markers created with LatLng and LatLngLiteral
-      [new google.maps.LatLng(1, 1), { lat: 1, lng: 1 }].forEach((position) => {
+      [
+        new google.maps.LatLng(1, 1),
+        { lat: 1, lng: 1 },
+        { lat: 0, lng: 0 },
+        { lat: undefined, lng: undefined },
+      ].forEach((position) => {
         const marker = new markerClass({ position: position });
         if (markerClass === google.maps.marker.AdvancedMarkerElement) {
           (marker as google.maps.marker.AdvancedMarkerElement).position =
             position;
         }
-        expect(MarkerUtils.getPosition(marker)).toBeInstanceOf(
-          google.maps.LatLng
-        );
+        const markerPosition = MarkerUtils.getPosition(marker);
+
+        expect(markerPosition).toBeInstanceOf(LatLng);
+        expect(markerPosition.lat()).not.toEqual(NaN);
+        expect(markerPosition.lng()).not.toEqual(NaN);
       });
     });
 
